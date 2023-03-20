@@ -5,6 +5,13 @@ module.exports = function (app) {
         res.send(response);
     });
 
+    app.get("/songs/add", function (req, res) {
+        let response = "Cancion: " + req.query.title + "<br>"
+            + "genero: " + req.query.kind + "<br>"
+            + "precio " + req.body.price;
+        res.send(response);
+    });
+
     app.get('/add', function(req, res) {
         let response = parseInt(req.query.num1) + parseInt(req.query.num2);
         res.send(String(response));
