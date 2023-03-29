@@ -48,7 +48,7 @@ module.exports = function (app, songsRepository, commentsRepository) {
                         }
                     })
                 } else {
-                    res.send("Agregada la canción ID: " + songId)
+                    res.redirect("/publications");
                 }
             }
         });
