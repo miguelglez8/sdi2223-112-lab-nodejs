@@ -15,7 +15,7 @@ module.exports = function (app, usersRepository) {
       password: securePassword
     }
     usersRepository.insertUser(user).then(userId => {
-      res.send('Usuario registrado ' + userId);
+      res.redirect("/users/login");
     }).catch(error => {
       res.send("Error al insertar el usuario");
     });
@@ -43,7 +43,7 @@ module.exports = function (app, usersRepository) {
       }
     }).catch(error => {
       req.session.user = null;
-      res.send("Se ha producido un error al buscar el usuario: " + error)
+      res.redirect("/publications");
     });
   })
 
