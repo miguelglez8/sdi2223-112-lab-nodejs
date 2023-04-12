@@ -89,6 +89,22 @@ module.exports = function (app, songsRepository, commentsRepository) {
         songsRepository.findSong(filter, options).then(song => {
             let filter2 = {song_id: ObjectId(req.params.id)};
             commentsRepository.getComments(filter2, options).then(comments => {
+                let settings = {
+                    url: "https://www.freeforexapi.com/api/live?pairs=EURUSD",
+                    method: "get",
+                    headers: {
+                        "token": "ejemplo",
+                    }
+                }
+                let rest = app.get("rest");
+                rest(settings, function (error, response, body) {
+                    console.log("cod: " + response.statusCode + " Cuerpo :" + body);
+                    let responseObject = JSON.parse(body);
+                    let rateUSD = responseObject.rates.EURUSD.rate;
+                    // nuevo campo "usd" redondeado a dos decimales
+                    let songValue= rateUSD * song.price;
+                    song.usd = Math.round(songValue * 100) / 100;
+                })
                 compruebaBuy(song, req.session.user, function (result) {
                     res.render("songs/song.twig", {song: song, comments: comments, isBought: result});
                 })
