@@ -101,7 +101,7 @@ module.exports = function (app, songsRepository, usersRepository) {
             //Si la _id NO no existe, no crea un nuevo documento.
             const options = {upsert: false};
             let song = {
-                author: req.session.user
+                author: res.user
             }
             if (typeof req.body.title !== "undefined" && req.body.title !== null)
                 song.title = req.body.title;
@@ -110,24 +110,31 @@ module.exports = function (app, songsRepository, usersRepository) {
             if (typeof req.body.price !== "undefined" && req.body.price !== null)
                 song.price = req.body.price;
 
-            owner(req.session.user,songId,function (isModifi) {
+            owner(res.user,songId,function (isModifi) {
                 if(isModifi){
-                    songsRepository.updateSong(song, filter, options).then(result => {
-                        if (result === null) {
-                            res.status(404);
-                            res.json({error: "ID inválido o no existe, no se ha actualizado la canción."});
-                        }
-                        //La _id No existe o los datos enviados no difieren de los ya almacenados.
-                        else if (result.modifiedCount == 0) {
-                            res.status(409);
-                            res.json({error: "No se ha modificado ninguna canción."});
+                    validateUpdateSong(song, function (error) {
+                        if (error != null) {
+                            res.status(422);
+                            res.json({error: error})
                         } else {
-                            res.status(200);
-                            res.json({
-                                message: "Canción modificada correctamente.",
-                                result: result
-                            })
-                        }
+                            songsRepository.updateSong(song, filter, options).then(result => {
+                                if (result === null) {
+                                    res.status(404);
+                                    res.json({error: "ID inválido o no existe, no se ha actualizado la canción."});
+                                }
+                                //La _id No existe o los datos enviados no difieren de los ya almacenados.
+                                else if (result.modifiedCount == 0) {
+                                    res.status(409);
+                                    res.json({error: "No se ha modificado ninguna canción."});
+                                } else {
+                                    res.status(200);
+                                    res.json({
+                                        message: "Canción modificada correctamente.",
+                                        result: result
+                                    })
+                                }
+                         })
+                    }
                     })
                 }
                 else{
@@ -186,6 +193,38 @@ module.exports = function (app, songsRepository, usersRepository) {
         }
     });
 
+    function validateUpdateSong(song, callback) {
+        let errors = new Array();
+        if (song.title != null && typeof song.title !== 'undefined' && song.title.trim().length == 0) {
+            errors.push({
+                "value": song.title,
+                "msg": "El título de la canción es inválido, escríbelo de nuevo",
+                "param": "title",
+                "location": "body"
+            })
+        }
+        if (song.kind !=  null && typeof song.kind !== 'undefined' &&  song.kind.trim().length == 0) {
+            errors.push({
+                "value": song.kind,
+                "msg": "El género de la canción es inválido, escríbelo de nuevo",
+                "param": "kind",
+                "location": "body"
+            })
+        }
+        if (song.price != null && typeof song.price !== 'undefined' && (song.price.trim().length==0 || song.price < 0)) {
+            errors.push({
+                "value": song.price,
+                "msg": "El precio de la canción es inválido (negativo), escríbelo de nuevo",
+                "param": "price",
+                "location": "body"
+            })
+        }
+        if (errors.length > 0) {
+            callback(errors)
+        } else {
+            callback(null)
+        }
+    }
     function validateSong(song, callback) {
         let errors = new Array();
         if (song.title == null || typeof song.title === 'undefined' || song.title.trim().length == 0) {
