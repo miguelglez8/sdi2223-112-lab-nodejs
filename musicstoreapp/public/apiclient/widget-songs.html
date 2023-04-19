@@ -69,7 +69,10 @@
         $("#" + _id).remove(); // eliminar el <tr> de la canción
       },
       error: function (error) {
-        $("#main-container").load("widget-login.html");
+        $("#errors").show();
+        $("#widget-songs")
+                .prepend("<div id= 'errors' class='alert alert-danger'>"
+                        + error.responseJSON.error+"</div>")
       }
     });
   }

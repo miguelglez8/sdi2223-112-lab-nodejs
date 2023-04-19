@@ -42,7 +42,13 @@
         $("#main-container").load("widget-songs.html");
       },
       error: function (error) {
-        $("#main-container").load("widget-login.html");
+        $("#errors").remove();
+        $("#widget-agregar")
+                .prepend("<div id= 'errors' class='alert alert-danger'><ul id='ul-error'></ul></div>")
+        for (let i=0; i < error.responseJSON.error.length; i++) {
+          $("#ul-error").append("<li>" + error.responseJSON.error[i].msg + "</li>") // li -> lista de errores
+        }
+
       }
     });
   }
