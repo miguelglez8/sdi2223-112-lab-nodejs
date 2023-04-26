@@ -1,5 +1,41 @@
 const {ObjectId} = require("mongodb");
+const {validationResult} = require('express-validator');
+const {songsValidatorInsert} = require('./songsValidator');
 module.exports = function (app, songsRepository, usersRepository) {
+    app.post('/api/v1.0/songs', songsValidatorInsert, function (req, res) {
+    try {
+        const errors = validationResult(req);
+        if (! errors.isEmpty()) {
+            res.status(422)
+            res.json({
+                errors: errors.array()
+            })
+        } else {
+            let song = {
+                title: req.body.title,
+                kind: req.body.kind,
+                price: req.body.price,
+                author: res.user
+            }
+            songsRepository.insertSong(song, function (songId) {
+                if (songId === null) {
+                    res.status(409);
+                    res.json({error: "No se ha podido crear la canción. El recurso ya existe."});
+                } else {
+                    res.status(201);
+                    res.json({
+                        message: "Canción añadida correctamente.",
+                        _id: songId
+                    })
+                }
+            });
+        }
+    } catch (e) {
+        res.status(500);
+        res.json({error: "Se ha producido un error al intentar crear la canción: " + e})
+    }
+});
+
     app.get("/api/v1.0/songs", function (req, res) {
         let filter = {};
         let options = {};
@@ -60,7 +96,8 @@ module.exports = function (app, songsRepository, usersRepository) {
         }
     });
 
-    app.post('/api/v1.0/songs', function (req, res) {
+    /*
+        app.post('/api/v1.0/songs', function (req, res) {
         try {
             let song = {
                 title: req.body.title,
@@ -93,7 +130,7 @@ module.exports = function (app, songsRepository, usersRepository) {
             res.json({error: "Se ha producido un error al intentar crear la canción: " + e})
         }
     });
-
+*/
     app.put('/api/v1.0/songs/:id', function (req, res) {
         try {
             let songId = ObjectId(req.params.id);
