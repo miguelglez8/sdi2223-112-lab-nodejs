@@ -1,6 +1,6 @@
 const {ObjectId} = require("mongodb");
 const {validationResult} = require('express-validator');
-const {songsValidatorInsert} = require('./songsValidator');
+const {songsValidatorInsert, songsValidatorUpdate} = require('./songsValidator');
 module.exports = function (app, songsRepository, usersRepository) {
     app.post('/api/v1.0/songs', songsValidatorInsert, function (req, res) {
     try {
@@ -35,6 +35,71 @@ module.exports = function (app, songsRepository, usersRepository) {
         res.json({error: "Se ha producido un error al intentar crear la canción: " + e})
     }
 });
+
+    app.put('/api/v1.0/songs/:id', songsValidatorUpdate, function (req, res) {
+        try {
+            let songId = ObjectId(req.params.id);
+            let filter = {_id: songId};
+            //Si la _id NO no existe, no crea un nuevo documento.
+            const options = {upsert: false};
+            let song = {
+                author: res.user
+            }
+            if (typeof req.body.title !== "undefined" && req.body.title !== null)
+                song.title = req.body.title;
+            if (typeof req.body.kind !== "undefined" && req.body.kind !== null)
+                song.kind = req.body.kind;
+            if (typeof req.body.price !== "undefined" && req.body.price !== null)
+                song.price = req.body.price;
+
+            const errors = validationResult(req);
+            if (! errors.isEmpty()) {
+                res.status(422)
+                res.json({
+                    errors: errors.array()
+                })
+            } else {
+                owner(res.user,songId,function (isModifi) {
+                    if(isModifi){
+                        validateUpdateSong(song, function (error) {
+                            if (error != null) {
+                                res.status(422);
+                                res.json({error: error})
+                            } else {
+                                songsRepository.updateSong(song, filter, options).then(result => {
+                                    if (result === null) {
+                                        res.status(404);
+                                        res.json({error: "ID inválido o no existe, no se ha actualizado la canción."});
+                                    }
+                                    //La _id No existe o los datos enviados no difieren de los ya almacenados.
+                                    else if (result.modifiedCount == 0) {
+                                        res.status(409);
+                                        res.json({error: "No se ha modificado ninguna canción."});
+                                    } else {
+                                        res.status(200);
+                                        res.json({
+                                            message: "Canción modificada correctamente.",
+                                            result: result
+                                        })
+                                    }
+                                })
+                            }
+                        })
+                    }
+                    else{
+                        res.status(400);
+                        res.json({
+                            error: "No puedes modificar la canción, no eres el dueño de la canción."
+                        });
+                    }
+                });
+            }
+        } catch (e) {
+            res.status(500);
+            res.json({error: "Se ha producido un error al intentar modificar la canción: "+ e})
+        }
+    });
+
 
     app.get("/api/v1.0/songs", function (req, res) {
         let filter = {};
@@ -131,6 +196,7 @@ module.exports = function (app, songsRepository, usersRepository) {
         }
     });
 */
+    /*
     app.put('/api/v1.0/songs/:id', function (req, res) {
         try {
             let songId = ObjectId(req.params.id);
@@ -186,7 +252,7 @@ module.exports = function (app, songsRepository, usersRepository) {
             res.json({error: "Se ha producido un error al intentar modificar la canción: "+ e})
         }
     });
-
+*/
     app.post('/api/v1.0/users/login', function (req, res) {
         try {
             let securePassword = app.get("crypto").createHmac("sha256", app.get('clave'))
